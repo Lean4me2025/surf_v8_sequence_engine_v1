@@ -60,7 +60,30 @@ function c_getSettings(){
     delay_ms:+document.getElementById("c_delay_ms").value||800
   };
 }
+function getStage({ deep_dd, vol_high, whale, breakout }) {
 
+  if (!deep_dd && !vol_high && !whale && !breakout) {
+    return "WAIT";
+  }
+
+  if (deep_dd && !vol_high && !whale && !breakout) {
+    return "SETUP";
+  }
+
+  if (deep_dd && (vol_high || whale) && !breakout) {
+    return "PREP";
+  }
+
+  if (deep_dd && (vol_high || whale) && breakout) {
+    return "GO";
+  }
+
+  if (breakout && !deep_dd) {
+    return "LATE";
+  }
+
+  return "WAIT";
+}
 let c_equityChartInstance=null;
 async function c_run(){
   try{
@@ -141,7 +164,16 @@ function c_engine(pricesBySym, s){
       const vol_high = !isNaN(row.vol10[i]) && !isNaN(medVol) && row.vol10[i] >= medVol;
       const whaleFlag = whale[sy][i]===true;
       const deepddFlag = (!isNaN(ddRanks[sy]) && ddRanks[sy] >= (s.deepdd_thresh_pct||95));
-      const allowed = vol_high && (breakout || deepddFlag);
+    const stage = getStage({
+  deep_dd: deepddFlag,
+  vol_high: vol_high,
+  whale: whaleFlag,
+  breakout: breakout
+});
+
+const action = getAction(stage);
+
+const allowed = stage === "GO";
       if(allowed){
         let w = s.w_base + (breakout?s.w_breakout:0) + (whaleFlag?s.w_whale:0) + (deepddFlag?s.w_deepdd:0);
         w = Math.min(w, s.w_cap);

@@ -31,6 +31,22 @@ function rollingMax(arr,n){ return arr.map((_,i)=>{ if(i<n-1) return NaN; let m=
 function rollingStdPctChange(series,n){ const rets=series.map((v,i)=> i===0? NaN : (series[i]/series[i-1]-1)); return rets.map((_,i)=>{ if(i<n) return NaN; let sum=0,sum2=0,cnt=0; for(let j=i-n+1;j<=i;j++){ const x=rets[j]; if(isNaN(x)) continue; sum+=x; sum2+=x*x; cnt++; } if(cnt<=1) return NaN; const mean=sum/cnt; return Math.sqrt(Math.max(0,sum2/cnt - mean*mean)); }); }
 function stdevArr(a){ const m=a.reduce((s,v)=>s+v,0)/a.length; return Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/a.length); }
 
+function getStage({ deep_dd, vol_high, whale, breakout }) {
+  if (deep_dd && vol_high && whale && breakout) return "GO";
+  if ((deep_dd && vol_high) || (whale && breakout)) return "READY";
+  if (vol_high || breakout) return "WATCH";
+  return "IDLE";
+}
+
+function getAction(stage) {
+  switch(stage) {
+    case "GO": return "BUY";
+    case "READY": return "PREP";
+    case "WATCH": return "OBSERVE";
+    default: return "SKIP";
+  }
+}
+
 // ===== CRYPTO =====
 const CG = "https://api.coingecko.com/api/v3";
 async function cg_listCoins(){ const r=await fetch(`${CG}/coins/list`); if(!r.ok) throw new Error("coins/list failed"); return await r.json(); }

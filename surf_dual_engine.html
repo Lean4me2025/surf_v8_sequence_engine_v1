@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SURF Dual Engine</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; background:#111; color:#eee; padding:20px; }
+    button { margin:5px; padding:8px 12px; cursor:pointer; }
+    .tabview { display:none; }
+    .active { display:block; }
+    table { border-collapse: collapse; margin-top:15px; width:100%; }
+    th, td { border:1px solid #333; padding:6px; text-align:center; }
+    th { background:#222; }
+    .good { color:lime; }
+    .bad { color:red; }
+  </style>
+</head>
+
+<body>
+
+<h2>SURF Dual Engine</h2>
+
+<button onclick="showPage('engine')">Opportunity Engine</button>
+<button onclick="showPage('tracker')">Weekly Tracker</button>
+
+<!-- ================= ENGINE ================= -->
+<div id="engine" class="tabview active">
+
+  <h3>Opportunity Engine</h3>
+
+  <button onclick="loadTop(50)">Top 50</button>
+  <button onclick="loadTop(100)">Top 100</button>
+  <button onclick="loadTop(200)">Top 200</button>
+  <br><br>
+
+  <textarea id="symbols" rows="3" style="width:100%"></textarea><br>
+
+  <button onclick="runEngine()">Run</button>
+
+  <h4>Strength Scan</h4>
+  <table id="strength"></table>
+
+</div>
+
+<!-- ================= TRACKER ================= -->
+<div id="tracker" class="tabview">
+
+  <h3>Weekly 3% Tracker (13 Weeks)</h3>
+
+  <canvas id="chart"></canvas>
+
+  <table id="weekly"></table>
+
+</div>
+
+<script>
+
+// NAV
+function showPage(id){
+  document.querySelectorAll(".tabview").forEach(x=>x.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+// API
+const CG="https://api.coingecko.com/api/v3";
+
+async function loadTop(n){
+  let out=[], page=1;
+  while(out.length<n){
+    const r=await fetch(`${CG}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=${page}`);
+    const d=await r.json();
+    out.push(...d.map(x=>x.symbol));
+    page++;
+    await new Promise(r=>setTimeout(r,500));
+  }
+  document.getElementById("symbols").value = out.slice(0,n).join(", ");
+}
+
+// SIMPLE ENGINE (demo logic)
+let equityCurve=[];
+
+async function runEngine(){
+
+  const syms=document.getElementById("symbols").value.split(",").map(s=>s.trim());
+
+  const table=document.getElementById("strength");
+  table.innerHTML="<tr><th>Symbol</th><th>Stage</th><th>Action</th></tr>";
+
+  equityCurve=[];
+  let equity=1000;
+
+  for(let i=0;i<13;i++){
+
+    // fake weekly return for demo (replace with real engine)
+    let r = (Math.random()*0.08 - 0.02); // -2% to +6%
+
+    equity *= (1+r);
+    equityCurve.push(equity);
+
+    syms.slice(0,5).forEach(s=>{
+      let stage = r>0.03 ? "GO" : r>0.01 ? "PREP" : "WAIT";
+      let action = stage==="GO" ? "BUY" : "SKIP";
+
+      table.innerHTML += `<tr>
+        <td>${s}</td>
+        <td>${stage}</td>
+        <td>${action}</td>
+      </tr>`;
+    });
+
+  }
+
+  buildTracker();
+
+}
+
+// ================= TRACKER =================
+
+function buildTracker(){
+
+  const table=document.getElementById("weekly");
+
+  let start=1000;
+  let target=1000;
+
+  table.innerHTML="<tr><th>Week</th><th>Actual End</th><th>%</th><th>Target</th><th>Gap</th><th>Status</th></tr>";
+
+  let actualLine=[];
+  let targetLine=[];
+
+  for(let i=0;i<13;i++){
+
+    let actual = equityCurve[i];
+    let weeklyPct = ((actual/start)-1)*100;
+
+    target *= 1.03;
+
+    let gap = actual - target;
+
+    let status = weeklyPct>=3 ? "HIT" : "MISS";
+
+    table.innerHTML += `<tr class="${weeklyPct>=3?'good':'bad'}">
+      <td>${i+1}</td>
+      <td>${actual.toFixed(2)}</td>
+      <td>${weeklyPct.toFixed(2)}%</td>
+      <td>${target.toFixed(2)}</td>
+      <td>${gap.toFixed(2)}</td>
+      <td>${status}</td>
+    </tr>`;
+
+    start = actual;
+
+    actualLine.push(actual);
+    targetLine.push(target);
+  }
+
+  drawChart(actualLine, targetLine);
+}
+
+// CHART
+function drawChart(actual, target){
+
+  const ctx=document.getElementById("chart").getContext("2d");
+
+  if(window.chart) window.chart.destroy();
+
+  window.chart=new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:actual.map((_,i)=>`W${i+1}`),
+      datasets:[
+        { label:"Actual", data:actual },
+        { label:"Target (3%)", data:target }
+      ]
+    }
+  });
+}
+
+</script>
+</body>
+</html>

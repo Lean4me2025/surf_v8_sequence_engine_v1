@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SURF — Secret Sauce (v7.4)</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🌊 SURF — Secret Sauce <span class="pill">v7.4</span></h1>
+    <p class="tagline">Crypto &amp; FX with breakout/vol/whale/deepDD + FX adaptive weights — now with <b>Pareto charts</b> and <b>auto‑saved settings</b>.</p>
+    <nav class="tabs">
+      <button class="tab active" data-target="#tab-crypto">Crypto</button>
+      <button class="tab" data-target="#tab-fx">FX</button>
+    </nav>
+  </header>
+  <main id="tab-crypto" class="tabview active">
+    <section class="panel">
+      <h2>Universe & Settings (Crypto)</h2>
+      <div class="grid">
+        <label>Starting Capital ($)<br/><input id="c_start_capital" type="number" min="100" step="100" value="1000" /></label>
+        <label>Symbols (comma-separated, lowercase)<br/><input id="c_symbols" value="btc, eth, sol, xrp" /></label>
+        <label>Fees (bps per trade leg)<br/><input id="c_fees_bps" type="number" min="0" max="200" value="0" /></label>
+        <label>Per-coin max allocation (%)<br/><input id="c_max_alloc_pct" type="number" min="1" max="100" value="20" /></label>
+        <label>Max concurrent positions<br/><input id="c_max_positions" type="number" min="1" max="100" value="10" /></label>
+        <label>Hard stop loss (%)<br/><input id="c_stop_pct" type="number" min="0" max="100" value="0" /></label>
+        <label>Trailing stop (%)<br/><input id="c_trail_pct" type="number" min="0" max="100" value="0" /></label>
+        <label>Breakout threshold (%)<br/><input id="c_breakout_pct" type="number" min="0" max="50" step="0.5" value="3" /></label>
+        <label>Lookback (days)<br/><input id="c_days" type="number" min="30" max="365" value="90" /></label>
+        <label>Base weight (x)<br/><input id="c_w_base" type="number" min="0.1" max="5" step="0.1" value="1.0" /></label>
+        <label>Breakout bonus (x)<br/><input id="c_w_breakout" type="number" min="0" max="3" step="0.1" value="0.5" /></label>
+        <label>Whale bonus (x)<br/><input id="c_w_whale" type="number" min="0" max="3" step="0.1" value="1.0" /></label>
+        <label>Deep‑DD bonus (x)<br/><input id="c_w_deepdd" type="number" min="0" max="3" step="0.1" value="0.7" /></label>
+        <label>Weight cap (x)<br/><input id="c_w_cap" type="number" min="0.5" max="5" step="0.1" value="2.5" /></label>
+        <label>Deep‑DD threshold percentile<br/><input id="c_deepdd_thresh_pct" type="number" min="50" max="100" step="1" value="95" /></label>
+        <label>Drawdown basis<br/>
+          <select id="c_dd_basis">
+            <option value="rolling" selected>Rolling High (lookback)</option>
+            <option value="ath">All‑Time High (ATH)</option>
+          </select>
+        </label>
+        <label>Fetch delay per coin (ms)<br/><input id="c_delay_ms" type="number" min="200" max="3000" value="800" /></label>
+      </div>
+      <div class="actions">
+        <span>Quick‑load symbols:</span>
+        <button id="c_loadTop50" class="secondary">Top 50</button>
+        <button id="c_loadTop100" class="secondary">Top 100</button>
+        <button id="c_loadTop200" class="secondary">Top 200</button>
+        <span id="c_status"></span>
+      </div>
+      <div class="actions">
+        <button id="c_runBtn">Fetch & Run Crypto</button>
+        <button id="c_dlTrades">Download Trades CSV</button>
+        <button id="c_dlEquity">Download Equity CSV</button>
+        <button id="c_dlFactors">Download Factor Summary CSV</button>
+      </div>
+    </section>
+    <section class="panel"><h2>Summary</h2><div id="c_summary" class="summary"></div></section>
+    <section class="panel"><h2>Equity Curve</h2><canvas id="c_equityChart" height="120"></canvas></section>
+    <section class="panel"><h2>Pareto — Factor Contribution (Crypto)</h2><canvas id="c_paretoChart" height="110"></canvas><table id="c_factorTable" class="table"></table></section>
+    <section class="panel"><h2>Trades</h2><table id="c_tradesTable" class="table"></table></section>
+  </main>
+  <main id="tab-fx" class="tabview">
+    <section class="panel">
+      <h2>FX Universe & Settings</h2>
+      <div class="grid">
+        <label>Starting Capital ($)<br/><input id="f_start_capital" type="number" min="1000" step="100" value="10000" /></label>
+        <label>Pairs (comma-separated, e.g. EURUSD, GBPJPY)<br/><input id="f_pairs" value="EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, NZDUSD, USDCAD, EURJPY, GBPJPY, EURGBP" /></label>
+        <label>Lookback (days)<br/><input id="f_days" type="number" min="30" max="365" value="180" /></label>
+        <label>Breakout threshold (bp of price)<br/><input id="f_breakout_bp" type="number" min="10" max="1000" value="30" /></label>
+        <label>Base weight (x)<br/><input id="f_w_base" type="number" min="0.1" max="5" step="0.1" value="1.0" /></label>
+        <label>Breakout bonus (x)<br/><input id="f_w_breakout" type="number" min="0" max="3" step="0.1" value="0.7" /></label>
+        <label>Vol‑High bonus (x)<br/><input id="f_w_vol" type="number" min="0" max="3" step="0.1" value="0.5" /></label>
+        <label>Weight cap (x)<br/><input id="f_w_cap" type="number" min="0.5" max="5" step="0.1" value="2.0" /></label>
+        <label>Max concurrent positions<br/><input id="f_max_positions" type="number" min="1" max="20" value="6" /></label>
+        <label><input id="f_adapt_on" type="checkbox" checked /> Enable Adaptive Factor Weights</label>
+        <label>Adapt lookback trades<br/><input id="f_adapt_window" type="number" min="10" max="500" value="100" /></label>
+        <label>Adapt learning rate (0–1)<br/><input id="f_adapt_lr" type="number" min="0.01" max="1" step="0.01" value="0.2" /></label>
+      </div>
+      <div class="actions">
+        <button id="f_runBtn">Fetch & Run FX</button>
+        <button id="f_dlWeights">Download Weight History</button>
+        <span id="f_status"></span>
+      </div>
+    </section>
+    <section class="panel"><h2>FX Summary</h2><div id="f_summary" class="summary"></div></section>
+    <section class="panel"><h2>FX Equity Curve</h2><canvas id="f_equityChart" height="120"></canvas></section>
+    <section class="panel"><h2>Pareto — Factor Contribution (FX)</h2><canvas id="f_paretoChart" height="110"></canvas><table id="f_factorTable" class="table"></table></section>
+    <section class="panel"><h2>Relative Strength (Currencies)</h2><div id="f_rs_table_wrap"><table id="f_rs_table" class="table"></table></div></section>
+    <section class="panel"><h2>Trades</h2><table id="f_tradesTable" class="table"></table></section>
+  </main>
+  <footer><p>Built with 💙 — crypto via CoinGecko; FX via exchangerate.host timeseries.</p></footer>
+  <script src="surf_v7_4.js"></script>
+</body>
+</html>
